@@ -12,14 +12,10 @@ dotenv.config();
 
 const app = express();
 
-// middlewares
-// middlewares
 app.use(cors({
   origin: "*",
   credentials: true,
 }));
-
-app.options("*", cors());
 
 app.use("/uploads", express.static("uploads"));
 app.use(express.json());
