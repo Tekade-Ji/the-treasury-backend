@@ -31,7 +31,8 @@ export const buyProduct = async (req, res) => {
     }
 
     // deduct coins
-    user.coins -= product.price;
+    // deduct coins (FIXED)
+user.coins = Number((user.coins - product.price).toFixed(2));
 
     // add product to owned
     user.ownedProducts.push(product._id);
