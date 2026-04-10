@@ -12,16 +12,29 @@ dotenv.config();
 
 const app = express();
 
+// 🔥 THE VIP LIST (Pulls from your .env)
+const allowedOrigins = [
+  process.env.CLIENT_URL,      // Localhost
+  process.env.LIVE_CLIENT_URL  // Vercel Live Site
+];
+
+// 🔥 UPGRADED CORS POLICY
 app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like Postman or mobile apps)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true, // Critical for cookies/tokens
 }));
 
 app.use(express.json());
-// ✅ ADD THIS LINE
-
 app.use(helmet());
-
 
 // test route
 app.get("/", (req, res) => {
@@ -36,12 +49,12 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
-  app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/coupons", couponRoutes);
 
 // server start
 app.listen(process.env.PORT || 5000, () => {
-  console.log("Server running 🚀");
+  console.log(`Server running on port ${process.env.PORT || 5000} 🚀`);
 });
