@@ -17,7 +17,6 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use("/uploads", express.static("uploads"));
 app.use(express.json());
 // ✅ ADD THIS LINE
 

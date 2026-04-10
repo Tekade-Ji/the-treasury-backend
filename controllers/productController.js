@@ -1,8 +1,5 @@
 import { Product } from "../models/Product.js";
 
-// helper
-const normalizePath = (filePath) => filePath.replace(/\\/g, "/");
-
 // ==============================
 // CREATE PRODUCT (ADMIN)
 // ==============================
@@ -18,12 +15,11 @@ export const createProduct = async (req, res) => {
       imageUrls,
     } = req.body;
 
-    const uploadedThumbnail = req.files?.thumbnail?.[0]?.path
-      ? normalizePath(req.files.thumbnail[0].path)
-      : null;
+    // ✅ Cloudinary gives direct URL
+    const uploadedThumbnail = req.files?.thumbnail?.[0]?.path || null;
 
     const uploadedImages = req.files?.images
-      ? req.files.images.map((file) => normalizePath(file.path))
+      ? req.files.images.map((file) => file.path)
       : [];
 
     const thumbnail = uploadedThumbnail || thumbnailUrl || "";
@@ -47,7 +43,7 @@ export const createProduct = async (req, res) => {
       videoUrl,
       thumbnail,
       images,
-      createdBy: req.user.id, // ✅ already correct
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
@@ -78,7 +74,7 @@ export const getProducts = async (req, res) => {
 };
 
 // ==============================
-// GET MY PRODUCTS (ADMIN ONLY 🔥)
+// GET MY PRODUCTS (ADMIN ONLY)
 // ==============================
 export const getMyProducts = async (req, res) => {
   try {
@@ -100,10 +96,15 @@ export const getMyProducts = async (req, res) => {
 // ==============================
 export const getSingleProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("createdBy", "name email");
+    const product = await Product.findById(req.params.id).populate(
+      "createdBy",
+      "name email"
+    );
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.status(200).json({
@@ -115,7 +116,9 @@ export const getSingleProduct = async (req, res) => {
   }
 };
 
-// UPDATE PRODUCT (only owner admin)
+// ==============================
+// UPDATE PRODUCT
+// ==============================
 export const updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -124,14 +127,10 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // ✅ ownership check
     if (product.createdBy.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // -----------------------------
-    // HANDLE TEXT FIELDS
-    // -----------------------------
     const { title, description, price, fileUrl, videoUrl } = req.body;
 
     if (title !== undefined) product.title = title;
@@ -140,46 +139,33 @@ export const updateProduct = async (req, res) => {
     if (fileUrl !== undefined) product.fileUrl = fileUrl;
     if (videoUrl !== undefined) product.videoUrl = videoUrl;
 
-    // -----------------------------
-    // HANDLE FILES
-    // -----------------------------
+    // ✅ Cloudinary URLs directly
     if (req.files?.thumbnail?.[0]?.path) {
-      product.thumbnail = normalizePath(req.files.thumbnail[0].path);
+      product.thumbnail = req.files.thumbnail[0].path;
     }
 
     if (req.files?.images) {
-      const newImages = req.files.images.map((file) =>
-        normalizePath(file.path)
-      );
+      const newImages = req.files.images.map((file) => file.path);
 
-      // 🔥 Replace OR append (choose behavior)
-
-      // OPTION 1: Replace all images
+      // Replace images (same as your logic)
       product.images = newImages;
-
-      // OPTION 2 (better UX): Append instead
-      // product.images = [...product.images, ...newImages];
     }
 
-    // -----------------------------
-    // SAVE
-    // -----------------------------
     await product.save();
 
     res.json({
       success: true,
       data: product,
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
 
-
-
-// DELETE PRODUCT (only owner admin)
+// ==============================
+// DELETE PRODUCT
+// ==============================
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -188,7 +174,6 @@ export const deleteProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // ✅ check ownership
     if (product.createdBy.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
